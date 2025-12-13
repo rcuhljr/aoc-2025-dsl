@@ -1,19 +1,11 @@
 sample = <<'DATA'
-3-5
-10-14
-1-20
-12-18
+30-32
+32-32
 
 1
-2
-3
 5
 8
-10
 11
-12
-13
-14
 17
 32
 DATA
@@ -1200,29 +1192,80 @@ DATA
 def solveA(input)
   input.gsub!(/\r|\n/,',')
   raw_ranges, ids = input.split(',,').to_a
-  ranges = raw_ranges.scan(/(\d+)-(\d+),/).to_a.map{|x| x.map(&:to_i)}
+  ranges = raw_ranges.scan(/(\d+)-(\d+)/).to_a.map{|x| x.map(&:to_i)}
   ids = ids.split(',').map(&:to_i)
   count = 0
-  puts ranges.inspect
-  puts ids.inspect
   ids.each do |id|
     if ranges.any?{|x, y| id >= x && id <= y}
       count += 1
-      puts id
     end
   end
   count
 end
 
+#        |--------|
+#     |--------|
+#           |--------|
+#     |-|          |-|
+#
+#  |---|
+#          |---|
+#  |---|   |---|
+
+def subtract_range(range_left, range_right)
+  l_start, l_end = range_left
+  r_start, r_end = range_right
+
+  if l_end < r_start || r_end < l_start # No overlap
+    return [range_right]
+  elsif l_start <= r_start && l_end >= r_end #left entirely contains right
+    return nil
+  elsif l_start >= r_start && l_end <= r_end #right entirely contains left
+    leading_elements = l_start - r_start
+    trailing_elements = r_end - l_end
+    new_ranges = []
+    if leading_elements > 0
+      new_ranges << [r_start, r_start + (leading_elements - 1)]
+    end
+    if trailing_elements > 0
+      new_ranges << [l_end + 1, r_end ]
+    end
+    return new_ranges
+  elsif l_start < r_start && l_end >= r_start #left covers left of right
+    return [[l_end + 1, r_end]]
+  elsif l_start > r_start && l_end >= r_end #left covers right of right
+    return [[r_start, l_start-1]]
+  end
+end
+
 def solveB(input)
+  input.gsub!(/\r|\n/,',')
+  raw_ranges, _ = input.split(',,').to_a
+  ranges = raw_ranges.scan(/(\d+)-(\d+)/).to_a.map{|x| x.map(&:to_i)}
+  count = 0
+  loop do
+      mod_ranges = []
+      # puts ranges.inspect
+      range = ranges.pop
+      # puts count
+      break unless range
+      count += range[1] - range[0] + 1
+      ranges.each do |other|
+        remaining = subtract_range(range, other)
+        mod_ranges << remaining if remaining
+      end
+      mod_ranges.flatten!(1)
+      ranges = mod_ranges
+  end
+  count
 end
 
 
 
 
 puts solveA(sample)
-# puts solveA(actual)
+puts solveA(actual)
 
 
-# puts solveB(sample)
-# puts solveB(actual)
+puts solveB(sample)
+puts solveB(actual)
